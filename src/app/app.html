@@ -1,0 +1,22 @@
+<div class="container">
+  <div class="d-flex flex-column mb-3 text-center">
+    <!-- Header -->
+    <h1>
+      {{title}}
+    </h1>
+
+    <!-- Button Group -->
+    <div class="button-group">
+      <ng-container *ngIf="!loginDisplay">
+        <button mat-menu-item class="btn btn-primary login-btn" (click)="loginRedirect()">Login using Redirect</button>
+        <!-- <button mat-menu-item class="btn btn-primary login-btn" (click)="loginPopup()">Login using Popup</button> -->
+      </ng-container>
+      <ng-container *ngIf="loginDisplay">
+        <div class="welcome-banner welcome-banner-flex">
+          <span>Welcome to admin app 🎉</span>
+       
+        </div>
+ <button mat-menu-item class="btn btn-secondary logout-btn" (click)="logout()">Logout</button>      </ng-container>
+        
+    </div>
+  </div>
