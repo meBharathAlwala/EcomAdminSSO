@@ -28,7 +28,7 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'EcomAdminSSO/dist/$(angularProjectName)'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/$(angularProjectName)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
