@@ -12,7 +12,8 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      vmImage: 'VM1'  # Or use self-hosted pool name
+     # vmImage: 'VM1'  # Or use self-hosted pool name
+      name: 'Default'   # Self-hosted agent pool where VM1 is registered
     steps:
     - task: NodeTool@0
       inputs:
