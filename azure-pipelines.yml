@@ -3,7 +3,7 @@ trigger:
 
 variables:
   buildConfiguration: 'production'
-  angularProjectName: 'EcomAdminSSO'
+  angularProjectName: 'EcomAdmin'
 
 stages:
 # -------- BUILD STAGE --------
@@ -28,7 +28,7 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist/$(angularProjectName)'
+        PathtoPublish: 'EcomAdminSSO/dist/$(angularProjectName)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
