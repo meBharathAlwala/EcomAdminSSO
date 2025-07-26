@@ -3,7 +3,7 @@ trigger:
 
 variables:
   buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin'
+  angularProjectName: 'EcomAdminSSO'
 
 stages:
 # -------- BUILD STAGE --------
