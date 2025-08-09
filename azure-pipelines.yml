@@ -1,5 +1,5 @@
 trigger:
-- main   # Change to your actual branch name
+- main   # Change this to your GitHub branch name
 
 variables:
   buildConfiguration: 'production'
@@ -12,7 +12,7 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'   # Self-hosted agent pool where VM is registered
+      name: 'Default'   # Self-hosted agent pool where VM1 is registered
     steps:
     - task: NodeTool@0
       inputs:
@@ -27,15 +27,18 @@ stages:
       displayName: "Build Angular Project"
 
     - powershell: |
-        if (-Not (Test-Path "$(System.DefaultWorkingDirectory)/dist/$(angularProjectName)")) {
-          Write-Error "Build output folder not found: $(System.DefaultWorkingDirectory)/dist/$(angularProjectName)"
+        $distFolder = Get-ChildItem "$(System.DefaultWorkingDirectory)/dist" -Directory | Select-Object -First 1
+        if (-Not $distFolder) {
+          Write-Error "No build output found in dist folder."
           exit 1
         }
-      displayName: "Verify build output exists"
+        Write-Host "##vso[task.setvariable variable=angularOutputPath]$($distFolder.FullName)"
+        Write-Host "Found build output in: $($distFolder.FullName)"
+      displayName: "Detect Angular Build Output"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/$(angularProjectName)'
+        PathtoPublish: '$(angularOutputPath)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
@@ -65,7 +68,7 @@ stages:
 
                 # Clear old files
                 if (Test-Path $destination) {
-                    Remove-Item "$destination\*" -Recurse -Force
+                    Remove-Item $destination\* -Recurse -Force
                 }
 
                 # Copy new build files
