@@ -12,8 +12,7 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-     # vmImage: 'VM1'  # Or use self-hosted pool name
-      name: 'Default'   # Self-hosted agent pool where VM1 is registered
+      name: 'Default'   # Self-hosted agent pool where VM is registered
     steps:
     - task: NodeTool@0
       inputs:
@@ -24,11 +23,19 @@ stages:
         npm install -g @angular/cli
         npm install
         ng build --configuration $(buildConfiguration)
+      workingDirectory: '$(System.DefaultWorkingDirectory)/EcomAdminSSO'
       displayName: "Build Angular Project"
+
+    - powershell: |
+        if (-Not (Test-Path "$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)")) {
+          Write-Error "Build output folder not found: $(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)"
+          exit 1
+        }
+      displayName: "Verify build output exists"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/$(angularProjectName)'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
