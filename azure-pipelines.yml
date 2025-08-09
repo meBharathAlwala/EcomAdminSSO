@@ -20,25 +20,15 @@ stages:
       displayName: "Install Node.js"
 
     - script: |
+        cd EcomAdminSSO
         npm install -g @angular/cli
         npm install
         ng build --configuration $(buildConfiguration)
-      workingDirectory: '$(System.DefaultWorkingDirectory)'
       displayName: "Build Angular Project"
-
-    - powershell: |
-        $distFolder = Get-ChildItem "$(System.DefaultWorkingDirectory)/dist" -Directory | Select-Object -First 1
-        if (-Not $distFolder) {
-          Write-Error "No build output found in dist folder."
-          exit 1
-        }
-        Write-Host "##vso[task.setvariable variable=angularOutputPath]$($distFolder.FullName)"
-        Write-Host "Found build output in: $($distFolder.FullName)"
-      displayName: "Detect Angular Build Output"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(angularOutputPath)'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
