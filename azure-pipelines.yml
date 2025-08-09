@@ -1,5 +1,5 @@
 trigger:
-- main   # Change this to your GitHub branch name
+- main   # Change to your actual branch name
 
 variables:
   buildConfiguration: 'production'
@@ -23,19 +23,19 @@ stages:
         npm install -g @angular/cli
         npm install
         ng build --configuration $(buildConfiguration)
-      workingDirectory: '$(System.DefaultWorkingDirectory)/EcomAdminSSO'
+      workingDirectory: '$(System.DefaultWorkingDirectory)'
       displayName: "Build Angular Project"
 
     - powershell: |
-        if (-Not (Test-Path "$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)")) {
-          Write-Error "Build output folder not found: $(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)"
+        if (-Not (Test-Path "$(System.DefaultWorkingDirectory)/dist/$(angularProjectName)")) {
+          Write-Error "Build output folder not found: $(System.DefaultWorkingDirectory)/dist/$(angularProjectName)"
           exit 1
         }
       displayName: "Verify build output exists"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/$(angularProjectName)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
@@ -65,7 +65,7 @@ stages:
 
                 # Clear old files
                 if (Test-Path $destination) {
-                    Remove-Item $destination\* -Recurse -Force
+                    Remove-Item "$destination\*" -Recurse -Force
                 }
 
                 # Copy new build files
