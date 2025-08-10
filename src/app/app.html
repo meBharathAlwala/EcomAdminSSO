@@ -1,22 +1,50 @@
 <div class="container">
-  <div class="d-flex flex-column mb-3 text-center">
+  <div class="page-layout">
+
     <!-- Header -->
-    <h1>
-      {{title}}
-    </h1>
+    <div class="app-title-bar">
+      <h1 class="app-title">{{ title }}</h1>
+      <ng-container *ngIf="loginDisplay">
+        <button
+          mat-stroked-button
+          color="warn"
+          (click)="logout()">
+          Logout
+        </button>
+      </ng-container>
+    </div>
 
     <!-- Button Group -->
     <div class="button-group">
+      <!-- Show login if not logged in -->
       <ng-container *ngIf="!loginDisplay">
-        <button mat-menu-item class="btn btn-primary login-btn" (click)="loginRedirect()">Login using Redirect</button>
-        <!-- <button mat-menu-item class="btn btn-primary login-btn" (click)="loginPopup()">Login using Popup</button> -->
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="loginRedirect()">
+          Login using Redirect
+        </button>
       </ng-container>
+
+      <!-- Show admin content if logged in -->
       <ng-container *ngIf="loginDisplay">
-        <div class="welcome-banner welcome-banner-flex">
-          <span>Welcome to admin app 🎉</span>
-       
+        <div class="welcome-banner">
+          <span class="welcome-text">Welcome to Admin App 🎉</span>
         </div>
- <button mat-menu-item class="btn btn-secondary logout-btn" (click)="logout()">Logout</button>      </ng-container>
-        
+
+        <button
+          mat-raised-button
+          color="accent"
+          class="mt-2"
+          (click)="getApiText()">
+          Get Data
+        </button>
+
+        <div *ngIf="apiText" class="api-response">
+          <strong>API Response:</strong> {{ apiText }}
+        </div>
+      </ng-container>
     </div>
+
   </div>
+</div>
