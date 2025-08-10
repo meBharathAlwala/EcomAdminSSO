@@ -4,6 +4,7 @@ import { MSAL_GUARD_CONFIG, MsalBroadcastService, MsalGuardConfiguration, MsalSe
 import { EventMessage, RedirectRequest ,EventType, InteractionStatus} from '@azure/msal-browser';
 import { filter, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { EcomAdminService } from './service/ecom-admin.service';
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
@@ -15,13 +16,15 @@ export class App {
   loginDisplay = false;
   private readonly _destroying$ = new Subject<void>();
   msalStatus: InteractionStatus = InteractionStatus.None;
+  apiText: string = '';
 /**
  *
  */
 constructor(   
   @Inject(MSAL_GUARD_CONFIG) private msalGuardConfig: MsalGuardConfiguration,
   private authService: MsalService,
-    private msalBroadcastService: MsalBroadcastService
+  private msalBroadcastService: MsalBroadcastService,
+  private ecomAdminService: EcomAdminService
  ) {
 
 
@@ -91,6 +94,16 @@ constructor(
           this.checkAndSetActiveAccount();
         }
       });
+
+      this.ecomAdminService.getText().subscribe({
+        next: (text) => {
+          this.apiText = text;
+          console.log('API Text:', text);
+        },
+        error: (err) => {
+          console.error('API Text fetch error:', err);
+        }
+      });
   }
 
   setLoginDisplay() {
@@ -121,6 +134,18 @@ constructor(
     } else {
       this.authService.logoutRedirect();
     }
+  }
+
+  getApiText() {
+    this.ecomAdminService.getText().subscribe({
+      next: (text) => {
+        this.apiText = text;
+        console.log('API Text:', text);
+      },
+      error: (err) => {
+        console.error('API Text fetch error:', err);
+      }
+    });
   }
 
 

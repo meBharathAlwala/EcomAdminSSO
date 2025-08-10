@@ -24,7 +24,7 @@ export const environment: EnvironmentConfiguration = {
       'api://6fcc55ff-4a12-4c07-b5f9-93fc0b5ba326/Ecom.Read',
       'api://6fcc55ff-4a12-4c07-b5f9-93fc0b5ba326/Ecom.Write'
     ],
-    apiEndpointUrl: 'http://localhost:7179/api',
+    apiEndpointUrl: 'https://localhost:7179/api',
     tenantId: "97243ff1-7d76-4a18-820e-3e4dc39e1319"
   },
   cacheTimeInMinutes: 30,
