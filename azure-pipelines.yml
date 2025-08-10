@@ -1,10 +1,18 @@
+trigger:
+  - main   # Change this to your GitHub branch name
+
+variables:
+  buildConfiguration: 'production'
+  angularProjectName: 'EcomAdmin'
+
+stages:
 # -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
     - job: BuildAngular
       pool:
-        name: 'Default'
+        name: 'Default'   # Self-hosted agent pool where VM1 is registered
       steps:
         - task: NodeTool@0
           inputs:
@@ -18,7 +26,7 @@
             ng build --configuration $(buildConfiguration)
           displayName: "Build Angular Project"
 
-        # Publish only the built Angular files directly (no extra folder nesting)
+        # Publish only compiled Angular files (no source code or nested dist folder)
         - task: PublishBuildArtifacts@1
           inputs:
             PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)/*'
@@ -34,7 +42,7 @@
     - deployment: DeployIIS
       environment: 'Production'
       pool:
-        name: 'Default'
+        name: 'Default' # Self-hosted agent pool
       strategy:
         runOnce:
           deploy:
