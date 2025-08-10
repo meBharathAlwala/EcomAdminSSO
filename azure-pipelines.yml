@@ -29,7 +29,7 @@ stages:
         # Publish only compiled Angular files (no source code or nested dist folder)
         - task: PublishBuildArtifacts@1
           inputs:
-            PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)/*'
+            PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist'
             ArtifactName: 'artifactname'
             publishLocation: 'Container'
           displayName: "Publish Compiled Angular App"
