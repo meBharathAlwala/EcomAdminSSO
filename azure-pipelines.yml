@@ -2,55 +2,58 @@
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
-  - job: BuildAngular
-    pool:
-      name: 'Default'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '18.x'
-      displayName: "Install Node.js"
+    - job: BuildAngular
+      pool:
+        name: 'Default'
+      steps:
+        - task: NodeTool@0
+          inputs:
+            versionSpec: '18.x'
+          displayName: "Install Node.js"
 
-    - script: |
-        cd EcomAdminSSO
-        npm install -g @angular/cli
-        npm install
-        ng build --configuration $(buildConfiguration)
-      displayName: "Build Angular Project"
+        - script: |
+            cd EcomAdminSSO
+            npm install -g @angular/cli
+            npm install
+            ng build --configuration $(buildConfiguration)
+          displayName: "Build Angular Project"
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
-        ArtifactName: 'artifactname'
-        publishLocation: 'Container'
-      displayName: "Publish Build Artifacts"
+        # Publish only the built Angular files directly (no extra folder nesting)
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)/*'
+            ArtifactName: 'artifactname'
+            publishLocation: 'Container'
+          displayName: "Publish Compiled Angular App"
 
 # -------- DEPLOY STAGE --------
 - stage: Deploy
   displayName: "Deploy to IIS on Azure VM"
   dependsOn: Build
   jobs:
-  - deployment: DeployIIS
-    environment: 'Production'
-    pool:
-      name: 'Default'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: artifactname
+    - deployment: DeployIIS
+      environment: 'Production'
+      pool:
+        name: 'Default'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: artifactname
 
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                $source = "$(Pipeline.Workspace)\artifactname"
-                $destination = "C:\MyApps\EcomAdminUI"
+              - task: PowerShell@2
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    $source = "$(Pipeline.Workspace)\artifactname"
+                    $destination = "C:\MyApps\EcomAdminUI"
 
-                if (Test-Path $destination) {
-                    Remove-Item $destination\* -Recurse -Force
-                }
+                    # Clear old files
+                    if (Test-Path $destination) {
+                        Remove-Item $destination\* -Recurse -Force
+                    }
 
-                Copy-Item "$source\*" $destination -Recurse
-                Write-Host "Deployment completed successfully."
+                    # Copy new build files
+                    Copy-Item "$source\*" $destination -Recurse
+                    Write-Host "Deployment completed successfully."
