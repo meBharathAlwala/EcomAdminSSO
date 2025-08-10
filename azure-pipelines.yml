@@ -1,18 +1,10 @@
-trigger:
-- main   # Change this to your GitHub branch name
-
-variables:
-  buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin'
-
-stages:
 # -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'   # Self-hosted agent pool where VM1 is registered
+      name: 'Default'
     steps:
     - task: NodeTool@0
       inputs:
@@ -28,7 +20,7 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
         ArtifactName: 'artifactname'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
@@ -41,7 +33,7 @@ stages:
   - deployment: DeployIIS
     environment: 'Production'
     pool:
-      name: 'Default' # Self-hosted agent pool
+      name: 'Default'
     strategy:
       runOnce:
         deploy:
@@ -56,11 +48,9 @@ stages:
                 $source = "$(Pipeline.Workspace)\artifactname"
                 $destination = "C:\MyApps\EcomAdminUI"
 
-                # Clear old files
                 if (Test-Path $destination) {
                     Remove-Item $destination\* -Recurse -Force
                 }
 
-                # Copy new build files
                 Copy-Item "$source\*" $destination -Recurse
                 Write-Host "Deployment completed successfully."
