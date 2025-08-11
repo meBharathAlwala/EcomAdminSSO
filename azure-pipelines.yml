@@ -5,7 +5,6 @@ variables:
   buildConfiguration: 'production'
   angularProjectName: 'EcomAdmin'
 
-stages:
 # -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
@@ -19,14 +18,7 @@ stages:
         versionSpec: '18.x'
       displayName: "Install Node.js"
 
-    # 🔍 Debug step to check folder structure
     - script: |
-        echo "Current directory: %CD%"
-        dir
-      displayName: "Debug: List repo root contents"
-
-    - script: |
-        cd EcomAdminSSO   # change or remove after you see correct folder
         npm install -g @angular/cli
         npm install
         ng build --configuration $(buildConfiguration)
@@ -34,10 +26,11 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'EcomAdminSSO/dist'
+        PathtoPublish: 'dist'  # Angular 18 outputs here by default
         ArtifactName: 'angular-dist'
         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
+
 
 # -------- DEPLOY STAGE --------
 - stage: Deploy
