@@ -1,9 +1,10 @@
 trigger:
-- main   # GitHub branch name
+- main   # Change this to your GitHub branch name
 
 variables:
   buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin'
+
+stages:
 # -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
@@ -25,11 +26,10 @@ variables:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist'  # Angular 18 outputs here by default
+        PathtoPublish: 'dist'  # Angular 18 build output
         ArtifactName: 'angular-dist'
         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
-
 
 # -------- DEPLOY STAGE --------
 - stage: Deploy
@@ -54,11 +54,19 @@ variables:
                 $source = "$(Pipeline.Workspace)\angular-dist"
                 $destination = "C:\MyApps\EcomAdminUI"
 
-                # Clear old files
+                Write-Host "Stopping IIS site..."
+                Import-Module WebAdministration
+                Stop-WebSite -Name "EcomAdminUI"
+
+                Write-Host "Clearing old files..."
                 if (Test-Path $destination) {
                     Remove-Item "$destination\*" -Recurse -Force
                 }
 
-                # Copy new build files
+                Write-Host "Copying new files..."
                 Copy-Item "$source\*" $destination -Recurse
-                Write-Host "Deployment completed successfully."
+
+                Write-Host "Starting IIS site..."
+                Start-WebSite -Name "EcomAdminUI"
+
+                Write-Host "✅ Deployment completed successfully."
