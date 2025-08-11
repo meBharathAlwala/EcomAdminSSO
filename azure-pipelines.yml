@@ -29,8 +29,8 @@ stages:
     - task: PublishBuildArtifacts@1
       inputs:
          PathtoPublish: 'EcomAdminSSO/dist'
-        ArtifactName: 'angular-dist'
-        publishLocation: 'Container'
+         ArtifactName: 'angular-dist'
+         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
 
 # -------- DEPLOY STAGE --------
