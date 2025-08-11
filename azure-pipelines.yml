@@ -1,16 +1,18 @@
 trigger:
-  - main
+  - main   # Change this to your GitHub branch name
 
 variables:
   buildConfiguration: 'production'
+  angularProjectName: 'EcomAdmin'
 
 stages:
+# -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
     - job: BuildAngular
       pool:
-        name: 'Default'
+        name: 'Default'   # Self-hosted agent pool where VM1 is registered
       steps:
         - task: NodeTool@0
           inputs:
@@ -18,29 +20,36 @@ stages:
           displayName: "Install Node.js"
 
         - script: |
-            cd EcomAdminSSO
+            echo "=== Building Angular App ==="
+            cd "$(System.DefaultWorkingDirectory)/EcomAdminSSO"
             npm install -g @angular/cli
             npm install
             ng build --configuration $(buildConfiguration)
 
-            echo "=== Show folder structure after build ==="
-            cd ..
-            dir /s /b > folderList.txt
-            type folderList.txt
-          displayName: "Build Angular Project & Show Structure"
+            echo "=== Build output structure ==="
+            dir dist /s
+          displayName: "Build Angular Project"
 
+        # Detect the actual dist folder dynamically
         - powershell: |
             $distRoot = "$(System.DefaultWorkingDirectory)\EcomAdminSSO\dist"
-            if (-Not (Test-Path $distRoot)) {
+            if (!(Test-Path $distRoot)) {
                 Write-Error "dist folder not found at $distRoot"
                 exit 1
             }
-            $distFolder = Get-ChildItem $distRoot -Recurse -Directory | Select-Object -First 1
-            if (-not $distFolder) { throw "No output folder found inside dist!" }
-            Write-Host "Found build folder: $($distFolder.FullName)"
-            Write-Host "##vso[task.setvariable variable=distPath]$($distFolder.FullName)"
+
+            $subFolder = Get-ChildItem $distRoot | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+            if (-not $subFolder) {
+                Write-Error "No subfolder found inside dist"
+                exit 1
+            }
+
+            $fullPath = Join-Path $distRoot $subFolder.Name
+            Write-Host "##vso[task.setvariable variable=distPath]$fullPath"
+            Write-Host "Detected build output folder: $fullPath"
           displayName: "Detect Build Output Folder"
 
+        # Publish dynamically detected folder
         - task: PublishBuildArtifacts@1
           inputs:
             PathtoPublish: '$(distPath)'
@@ -48,6 +57,7 @@ stages:
             publishLocation: 'Container'
           displayName: "Publish Compiled Angular App"
 
+# -------- DEPLOY STAGE --------
 - stage: Deploy
   displayName: "Deploy to IIS on Azure VM"
   dependsOn: Build
@@ -55,7 +65,7 @@ stages:
     - deployment: DeployIIS
       environment: 'Production'
       pool:
-        name: 'Default'
+        name: 'Default' # Self-hosted agent pool
       strategy:
         runOnce:
           deploy:
@@ -69,8 +79,12 @@ stages:
                   script: |
                     $source = "$(Pipeline.Workspace)\artifactname"
                     $destination = "C:\MyApps\EcomAdminUI"
+
+                    # Clear old files
                     if (Test-Path $destination) {
                         Remove-Item $destination\* -Recurse -Force
                     }
+
+                    # Copy new build files
                     Copy-Item "$source\*" $destination -Recurse
                     Write-Host "Deployment completed successfully."
