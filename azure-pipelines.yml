@@ -1,81 +1,66 @@
 trigger:
-  - main   # Change if your branch name is different
+- main   # Change this to your GitHub branch name
 
 variables:
   buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin' # Change if dist folder name differs
+  angularProjectName: 'EcomAdmin'
 
 stages:
 # -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
-    - job: BuildAngular
-      displayName: "Build Angular"
-      pool:
-        name: 'Default'   # Self-hosted agent pool
-      steps:
-        # Install Node.js
-        - task: NodeTool@0
-          inputs:
-            versionSpec: '18.x'
-          displayName: "Install Node.js"
+  - job: BuildAngular
+    pool:
+      name: 'Default'   # Self-hosted agent pool where VM1 is registered
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: "Install Node.js"
 
-        # Debug: List workspace contents
-        - script: |
-            echo "=== Listing workspace ==="
-            dir "$(System.DefaultWorkingDirectory)"
-          displayName: "Debug - List Workspace"
+    - script: |
+        cd EcomAdminSSO
+        npm install -g @angular/cli
+        npm install
+        ng build --configuration $(buildConfiguration)
+      displayName: "Build Angular Project"
 
-        # Detect project folder and build
-        - script: |
-            echo "=== Locating Angular project ==="
-            for /f "delims=" %%i in ('dir /S /B package.json ^| findstr /I /V "node_modules" ^| findstr /I /C:"EcomAdminSSO"') do (
-                echo Found package.json at %%i
-                cd /D "%%~dpi"
-                echo "=== Installing Angular CLI ==="
-                call npm install -g @angular/cli || exit /b 1
-                echo "=== Installing dependencies ==="
-                call npm install || exit /b 1
-                echo "=== Building Angular App ==="
-                call ng build --configuration $(buildConfiguration) || exit /b 1
-            )
-          displayName: "Build Angular Project"
-
-        # Publish compiled Angular files
-        - task: PublishBuildArtifacts@1
-          inputs:
-            PathtoPublish: '$(System.DefaultWorkingDirectory)\EcomAdminSSO\dist\$(angularProjectName)'
-            ArtifactName: 'AngularApp'
-            publishLocation: 'Container'
-          displayName: "Publish Angular Build"
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)'
+        ArtifactName: 'artifactname'
+        publishLocation: 'Container'
+      displayName: "Publish Build Artifacts"
 
 # -------- DEPLOY STAGE --------
 - stage: Deploy
   displayName: "Deploy to IIS on Azure VM"
   dependsOn: Build
   jobs:
-    - deployment: DeployIIS
-      environment: 'Production'
-      pool:
-        name: 'Default'
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - download: current
-                artifact: AngularApp
+  - deployment: DeployIIS
+    environment: 'Production'
+    pool:
+      name: 'Default' # Self-hosted agent pool
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: artifactname
 
-              - task: PowerShell@2
-                inputs:
-                  targetType: 'inline'
-                  script: |
-                    $source = "$(Pipeline.Workspace)\AngularApp"
-                    $destination = "C:\MyApps\EcomAdminUI"
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                $source = "$(Pipeline.Workspace)\artifactname"
+                $destination = "C:\MyApps\EcomAdminUI"
 
-                    if (Test-Path $destination) {
-                        Remove-Item $destination\* -Recurse -Force
-                    }
+                # Clear old files
+                if (Test-Path $destination) {
+                    Remove-Item $destination\* -Recurse -Force
+                }
 
-                    Copy-Item "$source\*" $destination -Recurse
-                    Write-Host "Deployment completed successfully."
+                # Copy new build files
+                Copy-Item "$source\*" $destination -Recurse
+                Write-Host "Deployment completed successfully."
