@@ -7,12 +7,12 @@ variables:
 
 stages:
 # -------- BUILD STAGE --------
-- stage: Build
+-- stage: Build
   displayName: "Build Angular Application"
   jobs:
     - job: BuildAngular
       pool:
-        name: 'Default'   # Self-hosted agent pool where VM1 is registered
+        name: 'Default'
       steps:
         - task: NodeTool@0
           inputs:
@@ -24,47 +24,22 @@ stages:
             npm install -g @angular/cli
             npm install
             ng build --configuration $(buildConfiguration)
-            echo "Build output contents:"
-            dir dist
-            dir dist\$(angularProjectName)
-          displayName: "Build Angular Project"
 
-        # Publish compiled Angular files (no source code or nested dist folder)
+            echo "=== Dist folder structure ==="
+            dir dist /s /b > distPaths.txt
+            type distPaths.txt
+          displayName: "Build Angular Project & Show Output"
+
+        - powershell: |
+            $distFolder = Get-ChildItem "$(System.DefaultWorkingDirectory)\EcomAdminSSO\dist" -Directory | Select-Object -First 1
+            if (-not $distFolder) { throw "No dist folder found after build!" }
+            Write-Host "##vso[task.setvariable variable=distPath]$($distFolder.FullName)"
+          displayName: "Detect Build Output Folder"
+
         - task: PublishBuildArtifacts@1
           inputs:
-            PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
+            PathtoPublish: '$(distPath)'
             ArtifactName: 'artifactname'
             publishLocation: 'Container'
           displayName: "Publish Compiled Angular App"
 
-# -------- DEPLOY STAGE --------
-- stage: Deploy
-  displayName: "Deploy to IIS on Azure VM"
-  dependsOn: Build
-  jobs:
-    - deployment: DeployIIS
-      environment: 'Production'
-      pool:
-        name: 'Default' # Self-hosted agent pool
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - download: current
-                artifact: artifactname
-
-              - task: PowerShell@2
-                inputs:
-                  targetType: 'inline'
-                  script: |
-                    $source = "$(Pipeline.Workspace)\artifactname"
-                    $destination = "C:\MyApps\EcomAdminUI"
-
-                    # Clear old files
-                    if (Test-Path $destination) {
-                        Remove-Item $destination\* -Recurse -Force
-                    }
-
-                    # Copy new build files
-                    Copy-Item "$source\*" $destination -Recurse
-                    Write-Host "Deployment completed successfully."
