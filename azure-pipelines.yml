@@ -24,12 +24,15 @@ stages:
             npm install -g @angular/cli
             npm install
             ng build --configuration $(buildConfiguration)
+            echo "Build output contents:"
+            dir dist
+            dir dist\$(angularProjectName)
           displayName: "Build Angular Project"
 
-        # Publish only compiled Angular files (no source code or nested dist folder)
+        # Publish compiled Angular files (no source code or nested dist folder)
         - task: PublishBuildArtifacts@1
           inputs:
-            PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)/browser'
+            PathtoPublish: '$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist/$(angularProjectName)'
             ArtifactName: 'artifactname'
             publishLocation: 'Container'
           displayName: "Publish Compiled Angular App"
