@@ -1,5 +1,5 @@
 trigger:
-  - main   # Change this to your GitHub branch name
+  - main  # Change to your branch name
 
 variables:
   buildConfiguration: 'production'
@@ -12,47 +12,39 @@ stages:
   jobs:
     - job: BuildAngular
       pool:
-        name: 'Default'   # Self-hosted agent pool where VM1 is registered
+        name: 'Default'  # Self-hosted agent pool
+
       steps:
         - task: NodeTool@0
           inputs:
             versionSpec: '18.x'
           displayName: "Install Node.js"
 
+        # Debug: Show working directory and find package.json
+        - script: |
+            echo "=== Checking working directory ==="
+            echo "System.DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)"
+            dir "$(System.DefaultWorkingDirectory)"
+            echo "=== Searching for package.json ==="
+            dir /S /B "$(System.DefaultWorkingDirectory)\package.json"
+          displayName: "Debug: Show repo contents"
+
+        # Build Angular App from the detected folder
         - script: |
             echo "=== Building Angular App ==="
-            cd "$(System.DefaultWorkingDirectory)/EcomAdminSSO"
-            npm install -g @angular/cli
-            npm install
-            ng build --configuration $(buildConfiguration)
-
-            echo "=== Build output structure ==="
-            dir dist /s
+            for /f "delims=" %%i in ('dir /S /B package.json ^| findstr /I /V "node_modules" ^| findstr /I /C:"EcomAdminSSO"') do (
+                echo Found package.json at %%i
+                cd /D "%%~dpi"
+                npm install -g @angular/cli
+                npm install
+                ng build --configuration $(buildConfiguration)
+            )
           displayName: "Build Angular Project"
 
-        # Detect the actual dist folder dynamically
-        - powershell: |
-            $distRoot = "$(System.DefaultWorkingDirectory)\EcomAdminSSO\dist"
-            if (!(Test-Path $distRoot)) {
-                Write-Error "dist folder not found at $distRoot"
-                exit 1
-            }
-
-            $subFolder = Get-ChildItem $distRoot | Where-Object { $_.PSIsContainer } | Select-Object -First 1
-            if (-not $subFolder) {
-                Write-Error "No subfolder found inside dist"
-                exit 1
-            }
-
-            $fullPath = Join-Path $distRoot $subFolder.Name
-            Write-Host "##vso[task.setvariable variable=distPath]$fullPath"
-            Write-Host "Detected build output folder: $fullPath"
-          displayName: "Detect Build Output Folder"
-
-        # Publish dynamically detected folder
+        # Publish compiled Angular files
         - task: PublishBuildArtifacts@1
           inputs:
-            PathtoPublish: '$(distPath)'
+            PathtoPublish: '$(System.DefaultWorkingDirectory)/**/dist/$(angularProjectName)'
             ArtifactName: 'artifactname'
             publishLocation: 'Container'
           displayName: "Publish Compiled Angular App"
@@ -79,6 +71,11 @@ stages:
                   script: |
                     $source = "$(Pipeline.Workspace)\artifactname"
                     $destination = "C:\MyApps\EcomAdminUI"
+
+                    if (-Not (Test-Path $source)) {
+                        Write-Error "Source folder not found: $source"
+                        exit 1
+                    }
 
                     # Clear old files
                     if (Test-Path $destination) {
