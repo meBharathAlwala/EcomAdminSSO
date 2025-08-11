@@ -1,5 +1,5 @@
 trigger:
-- main   # Change this to your GitHub branch name
+- main   # GitHub branch name
 
 variables:
   buildConfiguration: 'production'
@@ -12,7 +12,7 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'   # Self-hosted agent pool where VM1 is registered
+      name: 'Default'   # Self-hosted agent pool
     steps:
     - task: NodeTool@0
       inputs:
@@ -28,10 +28,10 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)'
-        ArtifactName: 'artifactname'
+        PathtoPublish: 'EcomAdminSSO/dist/$(angularProjectName)'  # Only publish build output
+        ArtifactName: 'angular-dist'
         publishLocation: 'Container'
-      displayName: "Publish Build Artifacts"
+      displayName: "Publish Angular Build Artifacts"
 
 # -------- DEPLOY STAGE --------
 - stage: Deploy
@@ -47,18 +47,18 @@ stages:
         deploy:
           steps:
           - download: current
-            artifact: artifactname
+            artifact: angular-dist
 
           - task: PowerShell@2
             inputs:
               targetType: 'inline'
               script: |
-                $source = "$(Pipeline.Workspace)\artifactname"
+                $source = "$(Pipeline.Workspace)\angular-dist"
                 $destination = "C:\MyApps\EcomAdminUI"
 
                 # Clear old files
                 if (Test-Path $destination) {
-                    Remove-Item $destination\* -Recurse -Force
+                    Remove-Item "$destination\*" -Recurse -Force
                 }
 
                 # Copy new build files
