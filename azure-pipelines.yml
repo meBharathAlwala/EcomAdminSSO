@@ -1,45 +1,46 @@
 trigger:
-  - main   # Change this to your GitHub branch name
+  - main
 
 variables:
   buildConfiguration: 'production'
 
 stages:
-# -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
     - job: BuildAngular
       pool:
-        name: 'Default'   # Self-hosted agent pool where VM1 is registered
+        name: 'Default'
       steps:
-        # Install Node.js
         - task: NodeTool@0
           inputs:
             versionSpec: '18.x'
           displayName: "Install Node.js"
 
-        # Build Angular app
         - script: |
             cd EcomAdminSSO
             npm install -g @angular/cli
             npm install
             ng build --configuration $(buildConfiguration)
 
-            echo "=== Dist folder structure ==="
-            dir dist /s /b > distPaths.txt
-            type distPaths.txt
-          displayName: "Build Angular Project & Show Output"
+            echo "=== Show folder structure after build ==="
+            cd ..
+            dir /s /b > folderList.txt
+            type folderList.txt
+          displayName: "Build Angular Project & Show Structure"
 
-        # Detect actual build output folder
         - powershell: |
-            $distFolder = Get-ChildItem "$(System.DefaultWorkingDirectory)\EcomAdminSSO\dist" -Directory | Select-Object -First 1
-            if (-not $distFolder) { throw "No dist folder found after build!" }
-            Write-Host "Found dist folder: $($distFolder.FullName)"
+            $distRoot = "$(System.DefaultWorkingDirectory)\EcomAdminSSO\dist"
+            if (-Not (Test-Path $distRoot)) {
+                Write-Error "dist folder not found at $distRoot"
+                exit 1
+            }
+            $distFolder = Get-ChildItem $distRoot -Recurse -Directory | Select-Object -First 1
+            if (-not $distFolder) { throw "No output folder found inside dist!" }
+            Write-Host "Found build folder: $($distFolder.FullName)"
             Write-Host "##vso[task.setvariable variable=distPath]$($distFolder.FullName)"
           displayName: "Detect Build Output Folder"
 
-        # Publish build artifacts from detected path
         - task: PublishBuildArtifacts@1
           inputs:
             PathtoPublish: '$(distPath)'
@@ -47,7 +48,6 @@ stages:
             publishLocation: 'Container'
           displayName: "Publish Compiled Angular App"
 
-# -------- DEPLOY STAGE --------
 - stage: Deploy
   displayName: "Deploy to IIS on Azure VM"
   dependsOn: Build
@@ -55,30 +55,22 @@ stages:
     - deployment: DeployIIS
       environment: 'Production'
       pool:
-        name: 'Default' # Self-hosted agent pool
+        name: 'Default'
       strategy:
         runOnce:
           deploy:
             steps:
-              # Download the published artifact
               - download: current
                 artifact: artifactname
 
-              # Deploy files to IIS folder
               - task: PowerShell@2
                 inputs:
                   targetType: 'inline'
                   script: |
                     $source = "$(Pipeline.Workspace)\artifactname"
                     $destination = "C:\MyApps\EcomAdminUI"
-
-                    Write-Host "Deploying from $source to $destination"
-
-                    # Clear old files
                     if (Test-Path $destination) {
                         Remove-Item $destination\* -Recurse -Force
                     }
-
-                    # Copy new build files
                     Copy-Item "$source\*" $destination -Recurse
                     Write-Host "Deployment completed successfully."
