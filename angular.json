@@ -1,95 +1,66 @@
-{
-  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
-  "version": 1,
-  "newProjectRoot": "projects",
-  "projects": {
-    "EcomAdmin": {
-      "projectType": "application",
-      "schematics": {},
-      "root": "",
-      "sourceRoot": "src",
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular/build:application",
-          "options": {
-             "outputPath": "dist/EcomAdmin",  
-            "browser": "src/main.ts",
-             "polyfills": ["zone.js"],
-            "tsConfig": "tsconfig.app.json",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.css"
-            ]
-          },
-          "configurations": {
-            "production": {
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "1MB",
-                  "maximumError": "1MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
-                },
-                              {
-                  "type": "initial",
-                  "maximumWarning": "1mb",
-                  "maximumError": "2mb"
-                }
-              ],
-              "outputHashing": "all"
-            },
-            "development": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true
-            }
-          },
-          "defaultConfiguration": "production"
-        },
-        "serve": {
-          "builder": "@angular/build:dev-server",
-          "configurations": {
-            "production": {
-              "buildTarget": "EcomAdmin:build:production"
-            },
-            "development": {
-              "buildTarget": "EcomAdmin:build:development"
-            }
-          },
-          "defaultConfiguration": "development"
-        },
-        "extract-i18n": {
-          "builder": "@angular/build:extract-i18n"
-        },
-        "test": {
-          "builder": "@angular/build:karma",
-          "options": {
-            "tsConfig": "tsconfig.spec.json",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.css"
-            ]
-          }
-        }
-      }
-    }
-  },
-  "cli": {
-    "analytics": "1ab041cf-bd1f-4b95-937c-e619b7d3558c"
-  }
-}
+trigger:
+  - main
+
+variables:
+  buildConfiguration: 'production'
+
+stages:
+- stage: Build
+  displayName: "Build Angular Application"
+  jobs:
+    - job: BuildAngular
+      pool:
+        name: 'Default'
+      steps:
+        - task: NodeTool@0
+          inputs:
+            versionSpec: '18.x'
+          displayName: "Install Node.js"
+
+        - script: |
+            echo "=== Building Angular App ==="
+            cd "$(System.DefaultWorkingDirectory)/EcomAdminSSO"
+
+            npm install -g @angular/cli
+            npm install
+            ng build --configuration $(buildConfiguration)
+
+            echo "=== Build output structure ==="
+            dir dist /s
+
+            echo "##vso[task.setvariable variable=distPath]$(System.DefaultWorkingDirectory)/EcomAdminSSO/dist"
+          displayName: "Build Angular Project"
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(distPath)/**'
+            ArtifactName: 'artifactname'
+            publishLocation: 'Container'
+          displayName: "Publish Compiled Angular App"
+
+- stage: Deploy
+  displayName: "Deploy to IIS on Azure VM"
+  dependsOn: Build
+  jobs:
+    - deployment: DeployIIS
+      environment: 'Production'
+      pool:
+        name: 'Default'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: artifactname
+
+              - task: PowerShell@2
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    $source = "$(Pipeline.Workspace)\artifactname"
+                    $destination = "C:\MyApps\EcomAdminUI"
+                    if (Test-Path $destination) {
+                        Remove-Item $destination\* -Recurse -Force
+                    }
+                    Copy-Item "$source\*" $destination -Recurse
+                    Write-Host "Deployment completed successfully."
