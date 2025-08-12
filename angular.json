@@ -1,81 +1,95 @@
-trigger:
-- main
 
-variables:
-  buildConfiguration: 'production'
-
-stages:
-# -------- BUILD STAGE --------
-- stage: Build
-  displayName: "Build Angular Application"
-  jobs:
-  - job: BuildAngular
-    pool:
-      name: 'Default'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '18.x'
-      displayName: "Install Node.js"
-
-    - script: |
-        npm install -g @angular/cli
-        npm install
-        npx ng build --configuration $(buildConfiguration)
-      displayName: "Build Angular Project"
-
-    # ✅ Verify dist exists
-    - script: |
-        if not exist dist (
-          echo "❌ Build failed: dist folder not found."
-          exit /b 1
-        )
-        echo "✅ Build succeeded: dist folder exists."
-      displayName: "Verify Build Output"
-
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: 'dist'
-        ArtifactName: 'angular-dist'
-        publishLocation: 'Container'
-      displayName: "Publish Angular Build Artifacts"
-
-# -------- DEPLOY STAGE --------
-- stage: Deploy
-  displayName: "Deploy to IIS on Azure VM"
-  dependsOn: Build
-  jobs:
-  - deployment: DeployIIS
-    environment: 'Production'
-    pool:
-      name: 'Default'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: angular-dist
-
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                $source = "$(Pipeline.Workspace)\angular-dist"
-                $destination = "C:\MyApps\EcomAdminUI"
-
-                Write-Host "Stopping IIS site..."
-                Import-Module WebAdministration
-                Stop-WebSite -Name "EcomAdminUI"
-
-                Write-Host "Clearing old files..."
-                if (Test-Path $destination) {
-                    Remove-Item "$destination\*" -Recurse -Force
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "EcomAdmin": {
+      "projectType": "application",
+      "schematics": {},
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+             "polyfills": ["zone.js"],
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1MB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                },
+                              {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
                 }
-
-                Write-Host "Copying new files..."
-                Copy-Item "$source\*" $destination -Recurse
-
-                Write-Host "Starting IIS site..."
-                Start-WebSite -Name "EcomAdminUI"
-
-                Write-Host "✅ Deployment completed successfully."
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "EcomAdmin:build:production"
+            },
+            "development": {
+              "buildTarget": "EcomAdmin:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "1ab041cf-bd1f-4b95-937c-e619b7d3558c"
+  }
+}
