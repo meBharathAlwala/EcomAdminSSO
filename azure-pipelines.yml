@@ -1,51 +1,52 @@
 trigger:
-- main   # Change to your branch name
+- main   # or your branch
 
-variables:
-  buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin'   # Change to your actual Angular project name
+pool:
+  name: 'Default'  # Your self-hosted Windows agent pool
 
-stages:
-# -------- BUILD STAGE --------
-- stage: Build
-  displayName: "Build Angular Application"
-  jobs:
-  - job: BuildAngular
-    displayName: "Install, Build & Verify Angular"
-    pool:
-      name: 'Default'   # Self-hosted agent pool where your VM is registered
-    steps:
-    # Install Node.js
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '20.x'
-      displayName: "Install Node.js"
+steps:
+# 1. Install Node.js
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x' # Matches Angular 20 engine requirements
+  displayName: 'Install Node.js'
 
-    # Install dependencies & build Angular
-    - task: PowerShell@2
-      inputs:
-        targetType: 'inline'
-        script: |
-          cd "$(Build.SourcesDirectory)"
+# 2. Install Angular CLI globally
+- script: |
+    echo === Installing Angular CLI globally ===
+    npm install -g @angular/cli
+  displayName: 'Install Angular CLI'
 
-          Write-Host "=== Installing Angular CLI globally ==="
-          npm install -g @angular/cli
+# 3. Install project dependencies
+- script: |
+    echo === Installing project dependencies ===
+    npm install
+  displayName: 'Install npm packages'
 
-          Write-Host "=== Installing project dependencies ==="
-          npm ci
+# 4. Build Angular app
+- script: |
+    echo === Building Angular project ===
+    ng build --configuration production
+  displayName: 'Build Angular project'
 
-          Write-Host "=== Building Angular project ==="
-          npx ng build --configuration $(buildConfiguration)
+# 5. Publish build artifact to Azure DevOps (optional for releases)
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/EcomAdmin'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+  displayName: 'Publish build artifact'
 
-          Write-Host "=== Verifying build output ==="
-          $buildPath = "dist/$(angularProjectName)/browser"
-          if (Test-Path $buildPath) {
-            Write-Host "✅ Build output found in $buildPath"
-            Get-ChildItem -Recurse $buildPath
-          }
-          else {
-            Write-Host "❌ Build output not found"
-            Get-ChildItem -Recurse "dist"
-            exit 1
-          }
-      displayName: "Install Dependencies, Build & Verify Angular Project"
+# 6. Deploy build output to IIS folder
+- powershell: |
+    Write-Host "=== Deploying to IIS folder ==="
+    $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin"
+    $destination = "C:\MyApps\EcomAdminUI"
+
+    if (!(Test-Path $destination)) {
+        New-Item -ItemType Directory -Path $destination -Force | Out-Null
+    }
+
+    Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
+    Write-Host "✅ Deployment complete to $destination"
+  displayName: 'Copy files to IIS folder'
