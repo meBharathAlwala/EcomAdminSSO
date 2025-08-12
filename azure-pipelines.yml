@@ -24,13 +24,14 @@ stages:
         npx ng build --configuration $(buildConfiguration)
       displayName: "Build Angular Project"
 
-    # ✅ Verify correct Angular 18 build output path
+    # ✅ Verify dist/EcomAdmin/browser exists
     - script: |
+        echo "Checking build output..."
         if not exist dist\EcomAdmin\browser (
-          echo "❌ Build failed: dist/EcomAdmin/browser folder not found."
+          echo "❌ Build failed: dist\EcomAdmin\browser folder not found."
           exit /b 1
         )
-        echo "✅ Build succeeded: dist/EcomAdmin/browser folder exists."
+        echo "✅ Build succeeded: dist\EcomAdmin\browser exists."
       displayName: "Verify Build Output"
 
     - task: PublishBuildArtifacts@1
