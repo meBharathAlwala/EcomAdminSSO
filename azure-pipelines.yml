@@ -1,12 +1,11 @@
 trigger:
-- main   # Change this to your branch name
+- main   # Change to your branch
 
 variables:
   buildConfiguration: 'production'
   angularProjectName: 'EcomAdmin'
 
 stages:
-# -------- BUILD STAGE --------
 - stage: Build
   displayName: "Build Angular Application"
   jobs:
@@ -14,30 +13,30 @@ stages:
     pool:
       name: 'Default'   # Self-hosted agent pool
     steps:
-    # Install Node.js
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
       displayName: "Install Node.js"
 
-    # Install Angular CLI & dependencies, then build
     - script: |
         cd "$(Build.SourcesDirectory)"
-        echo "Installing Angular CLI globally..."
+        echo Installing Angular CLI globally...
         npm install -g @angular/cli
 
-        echo "Installing dependencies..."
+        echo Installing dependencies...
         npm ci
 
-        echo "Building Angular project..."
-        ng build --configuration $(buildConfiguration)
+        echo Building Angular project...
+        npx ng build --configuration $(buildConfiguration)
 
-        echo "Verifying build output..."
+        echo Verifying build output...
         if exist "dist\$(angularProjectName)\browser" (
-            echo "✅ Build output found."
+            echo ✅ Build output found:
             dir dist\$(angularProjectName)\browser
         ) else (
-            echo "❌ Build failed: dist\$(angularProjectName)\browser folder not found."
+            echo ❌ Build failed: dist\$(angularProjectName)\browser not found.
+            dir dist
             exit /b 1
         )
       displayName: "Install Dependencies, Build & Verify Angular Project"
+      workingDirectory: "$(Build.SourcesDirectory)"
