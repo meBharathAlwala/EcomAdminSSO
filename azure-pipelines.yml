@@ -3,6 +3,7 @@ trigger:
 
 variables:
   buildConfiguration: 'production'
+  outputFolder: 'dist/EcomAdmin/browser'
 
 stages:
 # -------- BUILD STAGE --------
@@ -18,26 +19,36 @@ stages:
         versionSpec: '18.x'
       displayName: "Install Node.js"
 
+    # Install dependencies and build Angular
     - script: |
-        npm install -g @angular/cli
-        npm install
-        npx ng build --configuration $(buildConfiguration)
-  workingDirectory: '$(Build.SourcesDirectory)'
-  displayName: "Build Angular Project"
+        echo "📍 Current directory: %CD%"
+        cd "$(Build.SourcesDirectory)"
+        npm ci
+        npx ng build --configuration %buildConfiguration% --output-path %outputFolder%
+      displayName: "Build Angular Project"
+      workingDirectory: '$(Build.SourcesDirectory)'
 
-    # ✅ Verify dist/EcomAdmin/browser exists
+    # Debug: List directories to verify build output
     - script: |
-        echo "Checking build output..."
-        if not exist dist\EcomAdmin\browser (
-          echo "❌ Build failed: dist\EcomAdmin\browser folder not found."
+        echo "📂 Listing working directory:"
+        dir
+        echo "📂 Listing dist recursively:"
+        dir dist /s
+      displayName: "Debug: List dist after build"
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+    # ✅ Verify dist exists
+    - script: |
+        if not exist "$(Build.SourcesDirectory)\$(outputFolder)" (
+          echo "❌ Build failed: $(outputFolder) folder not found."
           exit /b 1
         )
-        echo "✅ Build succeeded: dist\EcomAdmin\browser exists."
+        echo "✅ Build succeeded: $(outputFolder) folder exists."
       displayName: "Verify Build Output"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist/EcomAdmin/browser'
+        PathtoPublish: '$(Build.SourcesDirectory)\$(outputFolder)'
         ArtifactName: 'angular-dist'
         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
