@@ -1,69 +1,94 @@
-trigger:
-  - main  # Change to your branch name
-
-variables:
-  buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin'
-
-stages:
-# -------- BUILD STAGE --------
-- stage: Build
-  displayName: "Build Angular Application"
-  jobs:
-  - job: BuildAngular
-    pool:
-      name: 'Default'   # Self-hosted agent pool
-    steps:
-    # Install Node.js
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '18.x'
-      displayName: "Install Node.js"
-
-    # Install Angular CLI & dependencies, build project
-    - script: |
-        cd EcomAdminSSO
-        npm install -g @angular/cli
-        npm ci   # Faster & more consistent than npm install
-        ng build --configuration $(buildConfiguration)
-      displayName: "Install Dependencies & Build Angular Project"
-
-    # Publish only the dist folder, not the entire repo
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: 'EcomAdminSSO/dist/$(angularProjectName)'
-        ArtifactName: 'artifactname'
-        publishLocation: 'Container'
-      displayName: "Publish Build Artifacts"
-
-# -------- DEPLOY STAGE --------
-- stage: Deploy
-  displayName: "Deploy to IIS on Azure VM"
-  dependsOn: Build
-  jobs:
-  - deployment: DeployIIS
-    environment: 'Production'
-    pool:
-      name: 'Default' # Self-hosted agent pool
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: artifactname
-
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                $source = "$(Pipeline.Workspace)\artifactname"
-                $destination = "C:\MyApps\EcomAdminUI"
-
-                # Clear old files
-                if (Test-Path $destination) {
-                    Remove-Item $destination\* -Recurse -Force
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "EcomAdmin": {
+      "projectType": "application",
+      "schematics": {},
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+             "polyfills": ["zone.js"],
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1MB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                },
+                              {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
                 }
-
-                # Copy new build files
-                Copy-Item "$source\*" $destination -Recurse
-                Write-Host "Deployment completed successfully."
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "EcomAdmin:build:production"
+            },
+            "development": {
+              "buildTarget": "EcomAdmin:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "1ab041cf-bd1f-4b95-937c-e619b7d3558c"
+  }
+}
