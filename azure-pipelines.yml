@@ -1,25 +1,51 @@
-- task: PowerShell@2
-  inputs:
-    targetType: 'inline'
-    script: |
-      cd "$(Build.SourcesDirectory)"
-      Write-Host "=== Installing Angular CLI globally ==="
-      npm install -g @angular/cli
+trigger:
+- main   # Change to your branch name
 
-      Write-Host "=== Installing project dependencies ==="
-      npm ci
+variables:
+  buildConfiguration: 'production'
+  angularProjectName: 'EcomAdmin'   # Change to your actual Angular project name
 
-      Write-Host "=== Building Angular project ==="
-      npx ng build --configuration $(buildConfiguration)
+stages:
+# -------- BUILD STAGE --------
+- stage: Build
+  displayName: "Build Angular Application"
+  jobs:
+  - job: BuildAngular
+    displayName: "Install, Build & Verify Angular"
+    pool:
+      name: 'Default'   # Self-hosted agent pool where your VM is registered
+    steps:
+    # Install Node.js
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: "Install Node.js"
 
-      Write-Host "=== Verifying build output ==="
-      if (Test-Path "dist/$(angularProjectName)/browser") {
-        Write-Host "✅ Build output found in dist/$(angularProjectName)/browser"
-        Get-ChildItem -Recurse dist/$(angularProjectName)/browser
-      }
-      else {
-        Write-Host "❌ Build output not found"
-        Get-ChildItem -Recurse dist
-        exit 1
-      }
-  displayName: "Install Dependencies, Build & Verify Angular Project"
+    # Install dependencies & build Angular
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          cd "$(Build.SourcesDirectory)"
+
+          Write-Host "=== Installing Angular CLI globally ==="
+          npm install -g @angular/cli
+
+          Write-Host "=== Installing project dependencies ==="
+          npm ci
+
+          Write-Host "=== Building Angular project ==="
+          npx ng build --configuration $(buildConfiguration)
+
+          Write-Host "=== Verifying build output ==="
+          $buildPath = "dist/$(angularProjectName)/browser"
+          if (Test-Path $buildPath) {
+            Write-Host "✅ Build output found in $buildPath"
+            Get-ChildItem -Recurse $buildPath
+          }
+          else {
+            Write-Host "❌ Build output not found"
+            Get-ChildItem -Recurse "dist"
+            exit 1
+          }
+      displayName: "Install Dependencies, Build & Verify Angular Project"
