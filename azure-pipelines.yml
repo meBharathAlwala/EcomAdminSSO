@@ -13,28 +13,28 @@ stages:
     pool:
       name: 'Default'
     steps:
-    # 1️⃣ Install Node.js
+    # Install Node.js 18
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
       displayName: "Install Node.js"
 
-    # 2️⃣ Install Angular CLI and dependencies
+    # Install Angular CLI globally and project dependencies
     - script: |
-        echo Installing Angular CLI...
         npm install -g @angular/cli
-        echo Installing project dependencies...
-        npm install
-      displayName: "Install Angular CLI and NPM Packages"
+        cd EcomAdminSSO
+        npm ci
+      displayName: "Install Angular CLI and Dependencies"
 
-    # 3️⃣ Build Angular Project
+    # Build the Angular project
     - script: |
-        echo Building Angular Project...
+        cd EcomAdminSSO
         ng build --configuration $(buildConfiguration)
       displayName: "Build Angular Project"
 
-    # 4️⃣ Verify dist output
+    # Verify build output exists
     - script: |
+        cd EcomAdminSSO
         echo "Checking build output..."
         if not exist dist\EcomAdmin\browser (
           echo "❌ Build failed: dist\EcomAdmin\browser folder not found."
@@ -43,10 +43,10 @@ stages:
         echo "✅ Build succeeded: dist\EcomAdmin\browser folder exists."
       displayName: "Verify Build Output"
 
-    # 5️⃣ Publish build artifact
+    # Publish build artifacts
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist/EcomAdmin/browser'
+        PathtoPublish: 'EcomAdminSSO/dist/EcomAdmin/browser'
         ArtifactName: 'angular-dist'
         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
