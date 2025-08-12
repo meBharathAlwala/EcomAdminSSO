@@ -1,5 +1,5 @@
 trigger:
-- main   # Change to your branch
+- main
 
 variables:
   buildConfiguration: 'production'
@@ -11,7 +11,7 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'   # Self-hosted agent pool
+      name: 'Default'
     steps:
     - task: NodeTool@0
       inputs:
@@ -20,23 +20,22 @@ stages:
 
     - script: |
         cd "$(Build.SourcesDirectory)"
-        echo Installing Angular CLI globally...
+        echo === Installing Angular CLI globally ===
         npm install -g @angular/cli
 
-        echo Installing dependencies...
+        echo === Installing project dependencies ===
         npm ci
 
-        echo Building Angular project...
+        echo === Building Angular project ===
         npx ng build --configuration $(buildConfiguration)
 
-        echo Verifying build output...
+        echo === Verifying build output ===
         if exist "dist\$(angularProjectName)\browser" (
-            echo ✅ Build output found:
+            echo ✅ Build output found in dist\$(angularProjectName)\browser
             dir dist\$(angularProjectName)\browser
         ) else (
-            echo ❌ Build failed: dist\$(angularProjectName)\browser not found.
+            echo ❌ Build output not found, listing dist contents:
             dir dist
             exit /b 1
         )
       displayName: "Install Dependencies, Build & Verify Angular Project"
-      workingDirectory: "$(Build.SourcesDirectory)"
