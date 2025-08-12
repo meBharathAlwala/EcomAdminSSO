@@ -1,8 +1,9 @@
 trigger:
-- main
+- main   # Change this to your GitHub branch name
 
 variables:
   buildConfiguration: 'production'
+  angularProjectName: 'EcomAdmin'
 
 stages:
 # -------- BUILD STAGE --------
@@ -11,45 +12,26 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'
+      name: 'Default'   # Self-hosted agent pool where VM1 is registered
     steps:
-    # Install Node.js 18
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
       displayName: "Install Node.js"
 
-    # Install Angular CLI globally and project dependencies
     - script: |
+        cd EcomAdminSSO
         npm install -g @angular/cli
-        cd EcomAdminSSO
-        npm ci
-      displayName: "Install Angular CLI and Dependencies"
-
-    # Build the Angular project
-    - script: |
-        cd EcomAdminSSO
+        npm install
         ng build --configuration $(buildConfiguration)
       displayName: "Build Angular Project"
 
-    # Verify build output exists
-    - script: |
-        cd EcomAdminSSO
-        echo "Checking build output..."
-        if not exist dist\EcomAdmin\browser (
-          echo "❌ Build failed: dist\EcomAdmin\browser folder not found."
-          exit /b 1
-        )
-        echo "✅ Build succeeded: dist\EcomAdmin\browser folder exists."
-      displayName: "Verify Build Output"
-
-    # Publish build artifacts
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'EcomAdminSSO/dist/EcomAdmin/browser'
-        ArtifactName: 'angular-dist'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)'
+        ArtifactName: 'artifactname'
         publishLocation: 'Container'
-      displayName: "Publish Angular Build Artifacts"
+      displayName: "Publish Build Artifacts"
 
 # -------- DEPLOY STAGE --------
 - stage: Deploy
@@ -59,34 +41,26 @@ stages:
   - deployment: DeployIIS
     environment: 'Production'
     pool:
-      name: 'Default'
+      name: 'Default' # Self-hosted agent pool
     strategy:
       runOnce:
         deploy:
           steps:
           - download: current
-            artifact: angular-dist
+            artifact: artifactname
 
           - task: PowerShell@2
             inputs:
               targetType: 'inline'
               script: |
-                $source = "$(Pipeline.Workspace)\angular-dist"
+                $source = "$(Pipeline.Workspace)\artifactname"
                 $destination = "C:\MyApps\EcomAdminUI"
 
-                Write-Host "Stopping IIS site..."
-                Import-Module WebAdministration
-                Stop-WebSite -Name "EcomAdminUI"
-
-                Write-Host "Clearing old files..."
+                # Clear old files
                 if (Test-Path $destination) {
-                    Remove-Item "$destination\*" -Recurse -Force
+                    Remove-Item $destination\* -Recurse -Force
                 }
 
-                Write-Host "Copying new files..."
+                # Copy new build files
                 Copy-Item "$source\*" $destination -Recurse
-
-                Write-Host "Starting IIS site..."
-                Start-WebSite -Name "EcomAdminUI"
-
-                Write-Host "✅ Deployment completed successfully."
+                Write-Host "Deployment completed successfully."
