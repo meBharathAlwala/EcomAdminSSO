@@ -24,18 +24,18 @@ stages:
         npx ng build --configuration $(buildConfiguration)
       displayName: "Build Angular Project"
 
-    # ✅ Verify dist exists
+    # ✅ Verify correct Angular 18 build output path
     - script: |
-        if not exist dist (
-          echo "❌ Build failed: dist folder not found."
+        if not exist dist\EcomAdmin\browser (
+          echo "❌ Build failed: dist/EcomAdmin/browser folder not found."
           exit /b 1
         )
-        echo "✅ Build succeeded: dist folder exists."
+        echo "✅ Build succeeded: dist/EcomAdmin/browser folder exists."
       displayName: "Verify Build Output"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist'
+        PathtoPublish: 'dist/EcomAdmin/browser'
         ArtifactName: 'angular-dist'
         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
