@@ -1,41 +1,25 @@
-trigger:
-- main
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd "$(Build.SourcesDirectory)"
+      Write-Host "=== Installing Angular CLI globally ==="
+      npm install -g @angular/cli
 
-variables:
-  buildConfiguration: 'production'
-  angularProjectName: 'EcomAdmin'
+      Write-Host "=== Installing project dependencies ==="
+      npm ci
 
-stages:
-- stage: Build
-  displayName: "Build Angular Application"
-  jobs:
-  - job: BuildAngular
-    pool:
-      name: 'Default'   # Your self-hosted pool
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '18.x'
-      displayName: "Install Node.js"
+      Write-Host "=== Building Angular project ==="
+      npx ng build --configuration $(buildConfiguration)
 
-    - script: |
-        cd "$(Build.SourcesDirectory)"
-        echo === Installing Angular CLI globally ===
-        npm install -g @angular/cli || exit /b 1
-
-        echo === Installing project dependencies ===
-        npm ci || exit /b 1
-
-        echo === Building Angular project ===
-        npx ng build --configuration $(buildConfiguration) || exit /b 1
-
-        echo === Verifying build output ===
-        if exist "dist\$(angularProjectName)\browser" (
-            echo ✅ Build output found in dist\$(angularProjectName)\browser
-            dir dist\$(angularProjectName)\browser
-        ) else (
-            echo ❌ Build output not found, listing dist contents:
-            dir dist
-            exit /b 1
-        )
-      displayName: "Install Dependencies, Build & Verify Angular Project"
+      Write-Host "=== Verifying build output ==="
+      if (Test-Path "dist/$(angularProjectName)/browser") {
+        Write-Host "✅ Build output found in dist/$(angularProjectName)/browser"
+        Get-ChildItem -Recurse dist/$(angularProjectName)/browser
+      }
+      else {
+        Write-Host "❌ Build output not found"
+        Get-ChildItem -Recurse dist
+        exit 1
+      }
+  displayName: "Install Dependencies, Build & Verify Angular Project"
