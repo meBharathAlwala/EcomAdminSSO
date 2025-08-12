@@ -22,7 +22,8 @@ stages:
         npm install -g @angular/cli
         npm install
         npx ng build --configuration $(buildConfiguration)
-      displayName: "Build Angular Project"
+  workingDirectory: '$(Build.SourcesDirectory)'
+  displayName: "Build Angular Project"
 
     # ✅ Verify dist/EcomAdmin/browser exists
     - script: |
