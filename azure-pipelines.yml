@@ -1,5 +1,5 @@
 trigger:
-- main   # Change this to your GitHub branch name
+- main
 
 variables:
   buildConfiguration: 'production'
@@ -11,7 +11,7 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'   # Self-hosted agent pool
+      name: 'Default'
     steps:
     - task: NodeTool@0
       inputs:
@@ -21,12 +21,21 @@ stages:
     - script: |
         npm install -g @angular/cli
         npm install
-        ng build --configuration $(buildConfiguration)
+        npx ng build --configuration $(buildConfiguration)
       displayName: "Build Angular Project"
+
+    # ✅ Verify dist exists
+    - script: |
+        if not exist dist (
+          echo "❌ Build failed: dist folder not found."
+          exit /b 1
+        )
+        echo "✅ Build succeeded: dist folder exists."
+      displayName: "Verify Build Output"
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist'  # Angular 18 build output
+        PathtoPublish: 'dist'
         ArtifactName: 'angular-dist'
         publishLocation: 'Container'
       displayName: "Publish Angular Build Artifacts"
@@ -39,7 +48,7 @@ stages:
   - deployment: DeployIIS
     environment: 'Production'
     pool:
-      name: 'Default' # Self-hosted agent pool
+      name: 'Default'
     strategy:
       runOnce:
         deploy:
