@@ -1,5 +1,5 @@
 trigger:
-  - main  # Change to your branch name
+- main   # Change this to your branch name
 
 variables:
   buildConfiguration: 'production'
@@ -12,27 +12,33 @@ stages:
   jobs:
   - job: BuildAngular
     pool:
-      name: 'Default'   # Self-hosted agent pool
+      name: 'Default'   # Self-hosted agent pool where your build server is registered
     steps:
-    # Install Node.js
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
       displayName: "Install Node.js"
 
-    # Install Angular CLI & dependencies, build project
     - script: |
         cd EcomAdminSSO
         npm install -g @angular/cli
-        npm ci   # Faster & more consistent than npm install
+        npm ci
         ng build --configuration $(buildConfiguration)
-      displayName: "Install Dependencies & Build Angular Project"
 
-    # Publish only the dist folder, not the entire repo
+        echo "Verifying build output..."
+        if exist "dist\$(angularProjectName)\browser" (
+            echo "✅ Build output found."
+            dir dist\$(angularProjectName)\browser
+        ) else (
+            echo "❌ Build failed: dist\$(angularProjectName)\browser folder not found."
+            exit /b 1
+        )
+      displayName: "Install Dependencies, Build & Verify Angular Project"
+
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'EcomAdminSSO/dist/$(angularProjectName)'
-        ArtifactName: 'artifactname'
+        PathtoPublish: '$(Build.SourcesDirectory)/EcomAdminSSO/dist/$(angularProjectName)/browser'
+        ArtifactName: 'EcomAdminUI'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
 
@@ -50,13 +56,13 @@ stages:
         deploy:
           steps:
           - download: current
-            artifact: artifactname
+            artifact: EcomAdminUI
 
           - task: PowerShell@2
             inputs:
               targetType: 'inline'
               script: |
-                $source = "$(Pipeline.Workspace)\artifactname"
+                $source = "$(Pipeline.Workspace)\EcomAdminUI"
                 $destination = "C:\MyApps\EcomAdminUI"
 
                 # Clear old files
@@ -66,4 +72,4 @@ stages:
 
                 # Copy new build files
                 Copy-Item "$source\*" $destination -Recurse
-                Write-Host "Deployment completed successfully."
+                Write-Host "✅ Deployment completed successfully."
