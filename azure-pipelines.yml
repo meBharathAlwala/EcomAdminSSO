@@ -40,7 +40,7 @@ steps:
 # 6. Deploy build output to IIS folder
 - powershell: |
     Write-Host "=== Deploying to IIS folder ==="
-    $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin"
+    $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin\browser"
     $destination = "C:\MyApps\EcomAdminUI"
 
     if (!(Test-Path $destination)) {
