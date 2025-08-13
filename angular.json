@@ -11,9 +11,8 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",     
-          "options": {
-            "outputPath": "dist/EcomAdmin",              
+         "builder": "@angular/build:browser"   
+          "options": {          
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
@@ -28,8 +27,7 @@
             ]
           },
           "configurations": {
-            "production": {
-              "outputPath": "dist/EcomAdmin",          
+            "production": {   
               "budgets": [
                 {
                   "type": "initial",
