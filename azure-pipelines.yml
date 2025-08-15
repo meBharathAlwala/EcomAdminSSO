@@ -1,52 +1,73 @@
 trigger:
-- main   # or your branch
+  branches:
+    include:
+      - Development
+
+pr:
+  branches:
+    include:
+      - Development
 
 pool:
   name: 'Default'  # Your self-hosted Windows agent pool
 
-steps:
-# 1. Install Node.js
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x' # Matches Angular 20 engine requirements
-  displayName: 'Install Node.js'
+stages:
+- stage: BuildAndDeployDev
+  displayName: 'Build and Deploy to DEV'
+  condition: |
+    or(
+      eq(variables['Build.SourceBranch'], 'refs/heads/Development'),
+      and(
+        eq(variables['Build.Reason'], 'PullRequest'),
+        eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/Development')
+      )
+    )
+  jobs:
+  - job: BuildAndDeploy
+    displayName: 'Build Angular Project and Deploy to IIS'
+    steps:
+    # 1. Install Node.js
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x' # Matches Angular 20 engine requirements
+      displayName: 'Install Node.js'
 
-# 2. Install Angular CLI globally
-- script: |
-    echo === Installing Angular CLI globally ===
-    npm install -g @angular/cli
-  displayName: 'Install Angular CLI'
+    # 2. Install Angular CLI globally
+    - script: |
+        echo === Installing Angular CLI globally ===
+        npm install -g @angular/cli
+      displayName: 'Install Angular CLI'
 
-# 3. Install project dependencies
-- script: |
-    echo === Installing project dependencies ===
-    npm install
-  displayName: 'Install npm packages'
+    # 3. Install project dependencies
+    - script: |
+        echo === Installing project dependencies ===
+        npm install
+      displayName: 'Install npm packages'
 
-# 4. Build Angular app
-- script: |
-    echo === Building Angular project ===
-    ng build --configuration production
-  displayName: 'Build Angular project'
+    # 4. Build Angular app
+    - script: |
+        echo === Building Angular project ===
+        ng build --configuration production
+      displayName: 'Build Angular project'
 
-# 5. Publish build artifact to Azure DevOps (optional for releases)
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/EcomAdmin'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
-  displayName: 'Publish build artifact'
+    # 5. Publish build artifact to Azure DevOps (optional for releases)
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/EcomAdmin'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+      displayName: 'Publish build artifact'
 
-# 6. Deploy build output to IIS folder
-- powershell: |
-    Write-Host "=== Deploying to IIS folder ==="
-    $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin\browser"
-    $destination = "C:\MyApps\EcomAdminUI"
+    # 6. Deploy build output to IIS folder
+    - powershell: |
+        Write-Host "=== Deploying to IIS folder ==="
+        $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin\browser"
+        $destination = "C:\MyApps\EcomAdminUI"
 
-    if (!(Test-Path $destination)) {
-        New-Item -ItemType Directory -Path $destination -Force | Out-Null
-    }
+        if (!(Test-Path $destination)) {
+            New-Item -ItemType Directory -Path $destination -Force | Out-Null
+        }
 
-    Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
-    Write-Host "✅ Deployment complete to $destination"
-  displayName: 'Copy files to IIS folder'
+        Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
+        Write-Host "✅ Deployment complete to $destination"
+      displayName: 'Copy files to IIS folder'
