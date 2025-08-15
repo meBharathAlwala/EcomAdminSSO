@@ -12,7 +12,7 @@ pool:
   name: 'Default'  # Your self-hosted Windows agent pool
 
 stages:
-- stage: BuildAndDeployDev
+- stage: BuildAndDeployDev   # dev
   displayName: 'Build and Deploy to DEV'
   condition: |
     or(
