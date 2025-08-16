@@ -1,0 +1,19 @@
+# deploy.yml - Deploy Angular build to IIS
+steps:
+  # Download artifact (optional if jobs run in same workspace)
+  - download: current
+    artifact: drop
+
+  # Deploy build output to IIS folder
+  - powershell: |
+      Write-Host "=== Deploying to IIS folder ==="
+      $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin\browser"
+      $destination = "C:\MyApps\EcomAdminUI"
+
+      if (!(Test-Path $destination)) {
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+      }
+
+      Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
+      Write-Host "✅ Deployment complete to $destination"
+    displayName: 'Copy files to IIS folder'
