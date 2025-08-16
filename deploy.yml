@@ -12,9 +12,10 @@ steps:
       $source = "$(Pipeline.Workspace)\drop"
       $browserPath = Join-Path $source "browser"
       $destination = "C:\MyApps\EcomAdminUI"
+
       if (!(Test-Path $destination)) {
         New-Item -ItemType Directory -Path $destination -Force | Out-Null
-    }
+      }
 
       # If Angular produced a 'browser' folder, use it, otherwise use root drop
       if (Test-Path $browserPath) {
@@ -26,5 +27,4 @@ steps:
           Write-Host "✅ Deployment complete from drop folder"
       }
 
-    }
     displayName: 'Copy files to IIS folder'
