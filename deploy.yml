@@ -7,13 +7,24 @@ steps:
   # Deploy build output to IIS folder
   - powershell: |
       Write-Host "=== Deploying to IIS folder ==="
-      $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin\browser"
+      
+      # Use the artifact path (Pipeline.Workspace\drop) instead of dist
+      $source = "$(Pipeline.Workspace)\drop"
+      $browserPath = Join-Path $source "browser"
       $destination = "C:\MyApps\EcomAdminUI"
 
       if (!(Test-Path $destination)) {
-          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+        New-Item -ItemType Directory -Path $destination -Force | Out-Null
       }
 
-      Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
-      Write-Host "✅ Deployment complete to $destination"
+      # If Angular produced a 'browser' folder, use it, otherwise use root drop
+      if (Test-Path $browserPath) {
+          Copy-Item -Path "$browserPath\*" -Destination $destination -Recurse -Force
+          Write-Host "✅ Deployment complete from browser folder"
+      }
+      else {
+          Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
+          Write-Host "✅ Deployment complete from drop folder"
+      }
+
     displayName: 'Copy files to IIS folder'
