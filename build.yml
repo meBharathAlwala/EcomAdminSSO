@@ -21,7 +21,7 @@ steps:
   # 4. Build Angular app
   - script: |
       echo === Building Angular project ===
-      npx ng build --configuration production
+      npx ng build --configuration development
     displayName: 'Build Angular project'
 
   # 5. Publish build artifact
