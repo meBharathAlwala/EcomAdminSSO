@@ -23,51 +23,14 @@ stages:
       )
     )
   jobs:
-  - job: BuildAndDeploy
-    displayName: 'Build Angular Project and Deploy to IIS'
+  - job: BuildJob
+    displayName: 'Build Angular Project'
     steps:
-    # 1. Install Node.js
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '20.x' # Matches Angular 20 engine requirements
-      displayName: 'Install Node.js'
+      - template: build.yml
 
-    # 2. Install Angular CLI globally
-    - script: |
-        echo === Installing Angular CLI globally ===
-        npm install -g @angular/cli
-      displayName: 'Install Angular CLI'
-
-    # 3. Install project dependencies
-    - script: |
-        echo === Installing project dependencies ===
-        npm install
-      displayName: 'Install npm packages'
-
-    # 4. Build Angular app
-    - script: |
-        echo === Building Angular project ===
-        ng build --configuration production
-      displayName: 'Build Angular project'
-
-    # 5. Publish build artifact to Azure DevOps (optional for releases)
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/EcomAdmin'
-        ArtifactName: 'drop'
-        publishLocation: 'Container'
-      displayName: 'Publish build artifact'
-
-    # 6. Deploy build output to IIS folder
-    - powershell: |
-        Write-Host "=== Deploying to IIS folder ==="
-        $source = "$(System.DefaultWorkingDirectory)\dist\EcomAdmin\browser"
-        $destination = "C:\MyApps\EcomAdminUI"
-
-        if (!(Test-Path $destination)) {
-            New-Item -ItemType Directory -Path $destination -Force | Out-Null
-        }
-
-        Copy-Item -Path "$source\*" -Destination $destination -Recurse -Force
-        Write-Host "✅ Deployment complete to $destination"
-      displayName: 'Copy files to IIS folder'
+  - job: DeployJob
+    displayName: 'Deploy Angular Project to IIS'
+    dependsOn: BuildJob
+    condition: succeeded()
+    steps:
+      - template: deploy.yml

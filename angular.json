@@ -50,23 +50,44 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+                "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.dev.ts"
+                }
+              ]
+            },
+            "qa": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.qa.ts"
+                }
+              ]
             }
+          
           },
           "defaultConfiguration": "production"
         },
-        "serve": {
-          "builder": "@angular/build:dev-server",
-          "configurations": {
-            "production": {
-              "buildTarget": "EcomAdmin:build:production"
+       "serve": {
+        "builder": "@angular/build:dev-server",
+            "configurations": {
+              "production": {
+                "buildTarget": "EcomAdmin:build:production"
+              },
+              "development": {
+                "buildTarget": "EcomAdmin:build:development"
+              },
+              "qa": {
+                "buildTarget": "EcomAdmin:build:qa"
+              }
             },
-            "development": {
-              "buildTarget": "EcomAdmin:build:development"
-            }
+            "defaultConfiguration": "development"
           },
-          "defaultConfiguration": "development"
-        },
         "extract-i18n": {
           "builder": "@angular/build:extract-i18n"
         },
