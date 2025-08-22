@@ -1,0 +1,33 @@
+# build.yml - Build Angular project
+steps:
+  # 1. Install Node.js
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x' # Matches Angular 20 engine requirements
+    displayName: 'Install Node.js'
+
+  # 2. Install Angular CLI globally (not needed if project has it in devDependencies)
+  # - script: |
+  #     echo === Installing Angular CLI globally ===
+  #     npm install -g @angular/cli
+  #   displayName: 'Install Angular CLI'
+
+  # 3. Install project dependencies
+  - script: |
+      echo === Installing project dependencies ===
+      npm install
+    displayName: 'Install npm packages'
+
+  # 4. Build Angular app
+  - script: |
+      echo === Building Angular project ===
+      npx ng build --configuration development
+    displayName: 'Build Angular project'
+
+  # 5. Publish build artifact
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(System.DefaultWorkingDirectory)/dist/EcomAdmin'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'
+    displayName: 'Publish build artifact'
