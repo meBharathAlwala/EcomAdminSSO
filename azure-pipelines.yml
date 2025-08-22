@@ -2,35 +2,63 @@ trigger:
   branches:
     include:
       - Development
+      - QA
 
 pr:
   branches:
     include:
       - Development
-
-pool:
-  name: 'Default'  # Your self-hosted Windows agent pool
+      - QA
 
 stages:
-- stage: BuildAndDeployDev   # dev
+# ------------------ Dev Build & Deploy ------------------
+- stage: BuildAndDeployDev
   displayName: 'Build and Deploy to DEV'
   condition: |
-    or(
-      eq(variables['Build.SourceBranch'], 'refs/heads/Development'),
-      and(
-        eq(variables['Build.Reason'], 'PullRequest'),
-        eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/Development')
-      )
-    )
+    eq(variables['Build.SourceBranch'], 'refs/heads/Development')
   jobs:
-  - job: BuildJob
-    displayName: 'Build Angular Project'
+  - job: BuildJobDev
+    displayName: 'Build Angular Project (Dev)'
+    pool:
+      name: 'Default'
+      demands:
+        - Agent.Name -equals agentnameselfhost   # <--- Dev agent
     steps:
       - template: build.yml
 
-  - job: DeployJob
-    displayName: 'Deploy Angular Project to IIS'
-    dependsOn: BuildJob
+  - job: DeployJobDev
+    displayName: 'Deploy Angular Project to IIS (Dev)'
+    dependsOn: BuildJobDev
     condition: succeeded()
+    pool:
+      name: 'Default'
+      demands:
+        - Agent.Name -equals agentnameselfhost   # <--- Dev agent
+    steps:
+      - template: deploy.yml
+
+# ------------------ QA Build & Deploy ------------------
+- stage: BuildAndDeployQA
+  displayName: 'Build and Deploy to QA'
+  condition: |
+    eq(variables['Build.SourceBranch'], 'refs/heads/QA')
+  jobs:
+  - job: BuildJobQA
+    displayName: 'Build Angular Project (QA)'
+    pool:
+      name: 'Default'
+      demands:
+        - Agent.Name -equals AgentSelefHostedQA   # <--- QA agent
+    steps:
+      - template: build.yml
+
+  - job: DeployJobQA
+    displayName: 'Deploy Angular Project to IIS (QA)'
+    dependsOn: BuildJobQA
+    condition: succeeded()
+    pool:
+      name: 'Default'
+      demands:
+        - Agent.Name -equals AgentSelefHostedQA   # <--- QA agent
     steps:
       - template: deploy.yml
