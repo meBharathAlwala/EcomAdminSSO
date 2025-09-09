@@ -22,7 +22,7 @@ stages:
     pool:
       name: 'Default'
       demands:
-        - Agent.Name -equals agentnameselfhost   # <--- Dev agent
+        - Agent.Name -equals EComAdmin_UI   # <--- Dev agent
     steps:
       - template: build.yml
 
