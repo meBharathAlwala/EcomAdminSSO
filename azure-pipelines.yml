@@ -48,7 +48,7 @@ stages:
     pool:
       name: 'Default'
       demands:
-        - Agent.Name -equals AgentSelefHostedQA   # <--- QA agent
+        - Agent.Name -equals EComAdmin_UI_QA   # <--- QA agent
     steps:
       - template: build.yml
 
@@ -59,6 +59,6 @@ stages:
     pool:
       name: 'Default'
       demands:
-        - Agent.Name -equals AgentSelefHostedQA   # <--- QA agent
+        - Agent.Name -equals EComAdmin_UI_QA   # <--- QA agent
     steps:
       - template: deploy.yml
